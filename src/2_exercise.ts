@@ -29,7 +29,10 @@ class Exercise2 extends SmartContract {
 
   @method async update() {
     const x = await this.x.get();
-    throw new Error('TODO: Set the state to the hash of x');
+    // Field f = Poseidon.hash([x]);
+    this.x.set(Poseidon.hash([x]));
+    this.balance.subInPlace(Exercise2.UpdateReward);
+    // throw new Error('TODO: Set the state to the hash of x');
   }
 }
 

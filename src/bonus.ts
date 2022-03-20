@@ -148,3 +148,5 @@ class RollupProof extends ProofWithInput<RollupStateTransition> {
 }
 
 shutdown();
+
+export {RollupAccount, RollupDeposit, RollupState, RollupStateTransition, RollupTransaction, RollupProof}

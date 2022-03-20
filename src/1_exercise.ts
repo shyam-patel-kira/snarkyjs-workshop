@@ -24,7 +24,9 @@ class Exercise1 extends SmartContract {
 
   @method async update(cubed: Field) {
     const x = await this.x.get();
-    throw new Error('TODO: Set the state to x^3');
+    x.mul(x).mul(x).assertEquals(cubed);
+    this.x.set(cubed);
+    // throw new Error('TODO: Set the state to x^3');
   }
 }
 
@@ -61,6 +63,15 @@ export async function run() {
   })
     .send()
     .wait();
+
+  // Update the bad cube
+  await Mina.transaction(account1, async () => {
+    // 70 != 27^3
+    await snappInstance.update(new Field(70));
+  })
+    .send()
+    .wait()
+    .catch((e) => console.log('second update failed'));
 
   const a = await Mina.getAccount(snappPubkey);
 

@@ -11,7 +11,9 @@
     "run3": "npx tsc && node dist/3_exercise.js",
     "run4": "npx tsc && node dist/4_exercise.js",
     "run5": "npx tsc && node dist/5_exercise.js",
-    "bonus": "npx tsc && node dist/bonus.js"
+    "bonus": "npx tsc && node dist/bonus.js",
+    "myexample": "npx tsc && node dist/my_example1.js",
+    "rollup": "npx tsc && node dist/rollup_test.js"
   },
   "repository": {
     "type": "git",
