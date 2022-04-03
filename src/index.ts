@@ -6,46 +6,47 @@ import {
   state,
   State,
   method,
+  UInt64,
   Mina,
+  Party,
   isReady,
   shutdown,
-  UInt64,
-  Party,
-} from "snarkyjs";
+} from 'snarkyjs';
 
 class Assignment extends SmartContract {
-  @state(Field) x: State<Field>;
-  @state(Field) y: State<Field>;
-  @state(Field) z: State<Field>;
+  @state(Field) num1: State<Field>;
+  @state(Field) num2: State<Field>;
+  @state(Field) num3: State<Field>;
 
   constructor(
     initialBalance: UInt64,
     address: PublicKey,
-    x: Field,
-    y: Field,
-    z: Field
+    num1: Field,
+    num2: Field,
+    num3: Field
   ) {
     super(address);
-
     this.balance.addInPlace(initialBalance);
-
-    this.x = State.init(x);
-    this.y = State.init(y);
-    this.z = State.init(z);
+    this.num1 = State.init(num1);
+    this.num2 = State.init(num2);
+    this.num3 = State.init(num3);
   }
 
-  @method async update(i: Field) {
-    const x = await this.x.get();
-    const y = await this.y.get();
-    const z = await this.z.get();
+  @method async update(updated: Field) {
+    const num1 = await this.num1.get();
+    const num2 = await this.num2.get();
+    const num3 = await this.num3.get();
+    const num = new Field(20);
 
-    this.x.set(x.mul(i));
-    this.y.set(y.mul(i.mul(2)));
-    this.z.set(z.mul(i.mul(3)));
+    num.assertEquals(updated);
+
+    this.num1.set(num1.mul(updated.mul(2)));
+    this.num2.set(num2.mul(updated.mul(3)));
+    this.num3.set(num3.mul(updated.mul(5)));
   }
 }
 
-export async function run() {
+async function runSimpleApp() {
   await isReady;
 
   const Local = Mina.LocalBlockchain();
@@ -57,10 +58,9 @@ export async function run() {
   const snappPubkey = snappPrivkey.toPublicKey();
 
   let snappInstance: Assignment;
-
-  const initX = new Field(7);
-  const initY = new Field(8);
-  const initZ = new Field(9);
+  const initSnappState1 = new Field(1);
+  const initSnappState2 = new Field(2);
+  const initSnappState3 = new Field(3);
 
   // Deploys the snapp
   await Mina.transaction(account1, async () => {
@@ -72,9 +72,9 @@ export async function run() {
     snappInstance = new Assignment(
       amount,
       snappPubkey,
-      initX,
-      initY,
-      initZ
+      initSnappState1,
+      initSnappState2,
+      initSnappState3
     );
   })
     .send()
@@ -82,47 +82,29 @@ export async function run() {
 
   // Update the snapp
   await Mina.transaction(account1, async () => {
-    // x = 7 * 2 = 14
-    // y = 8 * 2 * 2 = 32
-    // z = 9 * 2 * 3 = 54
-    await snappInstance.update(new Field(2));
+    // x = 1 * 20 * 2 = 40
+    // y = 2 * 20 * 3 = 120
+    // z = 3 * 20 * 5 = 300
+    await snappInstance.update(new Field(20));
   })
     .send()
     .wait();
 
-  const intermediateAcc = await Mina.getAccount(snappPubkey);
-
-  console.log("Updating Values...");
-  console.log(
-    "Intermediate Values : ",
-    [
-      intermediateAcc.snapp.appState[0].toString(),
-      intermediateAcc.snapp.appState[1].toString(),
-      intermediateAcc.snapp.appState[2].toString(),
-    ].join(", ")
-  );
-
-  // Update the snapp again
   await Mina.transaction(account1, async () => {
-    // x = 14 * 1 = 14
-    // y = 32 * 2 = 64
-    // z = 54 * 3 = 162
-    await snappInstance.update(new Field(1));
+    // should fail, because the provided value is wrong.
+    await snappInstance.update(new Field(109));
   })
     .send()
-    .wait();
+    .wait()
+    .catch((e) => console.log('second update attempt failed'));
 
-  const finalAcc = await Mina.getAccount(snappPubkey);
+  const a = await Mina.getAccount(snappPubkey);
 
-  console.log(
-    "Final state values : ",
-    [
-      finalAcc.snapp.appState[0].toString(),
-      finalAcc.snapp.appState[1].toString(),
-      finalAcc.snapp.appState[2].toString(),
-    ].join(", ")
-  );
+  console.log('final state value of num1', a.snapp.appState[0].toString());
+  console.log('final state value of num2', a.snapp.appState[1].toString());
+  console.log('final state value of num3', a.snapp.appState[2].toString());
 }
 
-run();
+runSimpleApp();
+
 shutdown();
